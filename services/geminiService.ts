@@ -202,15 +202,19 @@ export const generateCharacterImage = async (config: GenerateConfig): Promise<Ge
   }
 
   try {
-    console.log("Generating image...", { styleRefs: styleRefs.length, aspectRatio });
+    console.log("Generating image...", { styleRefs: styleRefs.length, aspectRatio, imageSize: config.quality });
 
     const response = await ai.models.generateContent({
       model: modelName,
       contents: { parts },
       config: {
         responseModalities: ['IMAGE', 'TEXT'],
-        // Pass aspect ratio for image generation
-        ...(aspectRatio && { aspectRatio: aspectRatio })
+        // Image generation config with aspect ratio and resolution
+        imageConfig: {
+          aspectRatio: aspectRatio,
+          // Pass resolution for Gemini 3 Pro (supports 1K, 2K, 4K)
+          imageSize: config.quality // '1K', '2K', or '4K'
+        }
       }
     });
 

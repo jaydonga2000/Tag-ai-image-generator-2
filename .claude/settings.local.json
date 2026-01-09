@@ -6,7 +6,10 @@
       "Bash(npm run dev:*)",
       "Bash(netsh advfirewall firewall add rule:*)",
       "Bash(dir:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd //c \"taskkill /PID 26932 /F\")"
     ]
   }
 }
