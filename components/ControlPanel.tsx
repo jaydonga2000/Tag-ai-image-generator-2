@@ -105,7 +105,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     if (!detectedRatio) return null;
     const resolutionMap: Record<string, Record<string, string>> = {
       '1K': { '1:1': '1024x1024', '3:4': '1080x1440', '4:3': '1440x1080', '9:16': '1080x1920', '16:9': '1920x1080' },
-      '2K': { '1:1': '2048x2048', '3:4': '2160x2880', '4:3': '2880x2160', '9:16': '2160x3840', '16:9': '3840x2160' }
+      '2K': { '1:1': '2048x2048', '3:4': '2160x2880', '4:3': '2880x2160', '9:16': '2160x3840', '16:9': '3840x2160' },
+      '4K': { '1:1': '4096x4096', '3:4': '3072x4096', '4:3': '4096x3072', '9:16': '2304x4096', '16:9': '4096x2304' }
     };
     return resolutionMap[quality]?.[detectedRatio] || null;
   }, [detectedRatio, quality]);
@@ -193,7 +194,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const getResolutionDisplay = (q: ImageQuality, r: AspectRatio) => {
     const map: Record<string, Record<string, string>> = {
       '1K': { '1:1': '1024x1024', '3:4': '1080x1440', '4:3': '1440x1080', '9:16': '1080x1920', '16:9': '1920x1080' },
-      '2K': { '1:1': '2048x2048', '3:4': '2160x2880', '4:3': '2880x2160', '9:16': '2160x3840', '16:9': '3840x2160' }
+      '2K': { '1:1': '2048x2048', '3:4': '2160x2880', '4:3': '2880x2160', '9:16': '2160x3840', '16:9': '3840x2160' },
+      '4K': { '1:1': '4096x4096', '3:4': '3072x4096', '4:3': '4096x3072', '9:16': '2304x4096', '16:9': '4096x2304' }
     };
     return map[q]?.[r] || 'Custom';
   };
@@ -267,7 +269,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   };
 
   const standardRatios: AspectRatio[] = ['16:9', '9:16', '1:1', '4:3', '3:4'];
-  const qualities: ImageQuality[] = ['1K', '2K'];
+  const qualities: ImageQuality[] = ['1K', '2K', '4K'];
 
   const currentResString = `${customWidth}x${customHeight}`;
   const isAlreadySaved = savedResolutions.includes(currentResString);
@@ -500,15 +502,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 <label className="text-xs text-slate-400">Quality</label>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {qualities.map(q => (
                 <button
                     key={q}
                     onClick={() => onQualityChange(q)}
                     className={`
                         w-full py-2 rounded-lg text-sm font-medium transition-all
-                        ${quality === q 
-                        ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/20' 
+                        ${quality === q
+                        ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/20'
                         : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
                         }
                     `}
@@ -596,7 +598,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                                  {getResolutionDisplay(quality, aspectRatio)}
                                </span>
                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
-                                 quality === '2K' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'
+                                 quality === '4K' ? 'bg-orange-500/20 text-orange-400' : quality === '2K' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'
                                }`}>{quality}</span>
                              </div>
                            </div>
@@ -726,7 +728,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                                       <span className="text-[10px] text-slate-500">Output:</span>
                                       <span className="text-xs font-mono font-bold text-green-400">{outputResolution}</span>
                                       <span className={`text-[9px] px-1 py-0.5 rounded font-medium ${
-                                        quality === '2K' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'
+                                        quality === '4K' ? 'bg-orange-500/20 text-orange-400' : quality === '2K' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'
                                       }`}>{quality}</span>
                                     </div>
                                   )}

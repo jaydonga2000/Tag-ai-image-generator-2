@@ -96,7 +96,7 @@ export const resizeImage = (
  * Get target resolution based on quality and aspect ratio
  */
 export const getTargetResolution = (
-  quality: '1K' | '2K',
+  quality: '1K' | '2K' | '4K',
   aspectRatio: string
 ): { width: number; height: number } | null => {
   const resolutionMap: Record<string, Record<string, { width: number; height: number }>> = {
@@ -113,6 +113,13 @@ export const getTargetResolution = (
       '4:3': { width: 2880, height: 2160 },
       '9:16': { width: 2160, height: 3840 },
       '16:9': { width: 3840, height: 2160 }
+    },
+    '4K': {
+      '1:1': { width: 4096, height: 4096 },
+      '3:4': { width: 3072, height: 4096 },
+      '4:3': { width: 4096, height: 3072 },
+      '9:16': { width: 2304, height: 4096 },
+      '16:9': { width: 4096, height: 2304 }
     }
   };
 

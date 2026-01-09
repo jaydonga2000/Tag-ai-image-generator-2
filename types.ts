@@ -1,14 +1,13 @@
-export type ImageQuality = '1K' | '2K';
-export type AspectRatio = string; // Changed from union to string to support custom inputs
+export type ImageQuality = '1K' | '2K' | '4K';
+export type AspectRatio = '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
 export type GenerationMode = 'text-to-image' | 'image-to-image';
 
 // Available Gemini models for image generation
-export type GeminiModel = 'gemini-2.0-flash-exp' | 'gemini-2.0-flash-preview-image-generation' | 'imagen-3.0-generate-002' | 'gemini-3-pro-image-preview';
+export type GeminiModel = 'gemini-2.0-flash-exp' | 'gemini-2.0-flash-preview-image-generation' | 'gemini-3-pro-image-preview';
 
 export const GEMINI_MODELS: { id: GeminiModel; name: string; description: string; free: boolean }[] = [
   { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', description: 'Fast, supports style refs', free: true },
   { id: 'gemini-2.0-flash-preview-image-generation', name: 'Gemini 2.0 Flash Preview', description: 'Preview image gen', free: true },
-  { id: 'imagen-3.0-generate-002', name: 'Imagen 3.0', description: 'High quality, no style refs', free: false },
   { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro', description: 'Latest pro model for images', free: false },
 ];
 

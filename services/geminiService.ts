@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { GenerateConfig } from "../types";
+import { GenerateConfig, AspectRatio } from "../types";
 import { resizeImage, getTargetResolution, getImageDimensions } from "../utils/imageResize";
 
 export interface GenerationResult {
@@ -125,7 +125,8 @@ export const generateCharacterImage = async (config: GenerateConfig): Promise<Ge
   // Get exact resolution based on quality and aspect ratio
   const resolutionMap: Record<string, Record<string, string>> = {
     '1K': { '1:1': '1024x1024', '3:4': '1080x1440', '4:3': '1440x1080', '9:16': '1080x1920', '16:9': '1920x1080' },
-    '2K': { '1:1': '2048x2048', '3:4': '2160x2880', '4:3': '2880x2160', '9:16': '2160x3840', '16:9': '3840x2160' }
+    '2K': { '1:1': '2048x2048', '3:4': '2160x2880', '4:3': '2880x2160', '9:16': '2160x3840', '16:9': '3840x2160' },
+    '4K': { '1:1': '4096x4096', '3:4': '3072x4096', '4:3': '4096x3072', '9:16': '2304x4096', '16:9': '4096x2304' }
   };
 
   const targetResolution = resolutionMap[config.quality]?.[config.aspectRatio] ||
@@ -183,13 +184,13 @@ export const generateCharacterImage = async (config: GenerateConfig): Promise<Ge
       '1:1': 1, '16:9': 16/9, '9:16': 9/16, '4:3': 4/3, '3:4': 3/4
     };
 
-    let closestRatio = '1:1';
+    let closestRatio: AspectRatio = '1:1';
     let minDiff = Infinity;
     for (const [name, value] of Object.entries(ratioValues)) {
       const diff = Math.abs(targetRatio - value);
       if (diff < minDiff) {
         minDiff = diff;
-        closestRatio = name;
+        closestRatio = name as AspectRatio;
       }
     }
     aspectRatio = closestRatio;

@@ -5,7 +5,8 @@
       "Bash(findstr:*)",
       "Bash(npm run dev:*)",
       "Bash(netsh advfirewall firewall add rule:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(timeout:*)"
     ]
   }
 }
