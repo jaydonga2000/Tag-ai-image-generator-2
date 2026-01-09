@@ -202,20 +202,33 @@ export const generateCharacterImage = async (config: GenerateConfig): Promise<Ge
   }
 
   try {
-    console.log("Generating image...", { styleRefs: styleRefs.length, aspectRatio, imageSize: config.quality });
+    // Only Gemini 3 Pro supports native 2K/4K output and imageConfig
+    const isGemini3Pro = modelName === 'gemini-3-pro-image-preview';
+    console.log("Generating image...", {
+      model: modelName,
+      aspectRatio,
+      imageSize: isGemini3Pro ? config.quality : '1K (client upscale)'
+    });
+
+    // Different config for free vs paid models
+    const apiConfig = isGemini3Pro
+      ? {
+          responseModalities: ['IMAGE', 'TEXT'],
+          imageConfig: {
+            aspectRatio: aspectRatio,
+            imageSize: config.quality
+          }
+        }
+      : {
+          responseModalities: ['IMAGE', 'TEXT'],
+          // Free models only support aspectRatio at top level
+          aspectRatio: aspectRatio
+        };
 
     const response = await ai.models.generateContent({
       model: modelName,
       contents: { parts },
-      config: {
-        responseModalities: ['IMAGE', 'TEXT'],
-        // Image generation config with aspect ratio and resolution
-        imageConfig: {
-          aspectRatio: aspectRatio,
-          // Pass resolution for Gemini 3 Pro (supports 1K, 2K, 4K)
-          imageSize: config.quality // '1K', '2K', or '4K'
-        }
-      }
+      config: apiConfig
     });
 
     // Extract image from response

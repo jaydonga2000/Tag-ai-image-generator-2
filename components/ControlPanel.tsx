@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { Character, StyleReference, BackgroundState, ImageQuality, AspectRatio, GenerationMode } from '../types';
+import { Character, StyleReference, BackgroundState, ImageQuality, AspectRatio, GenerationMode, GeminiModel } from '../types';
 import CharacterSlot from './CharacterSlot';
 import StyleRefSlot from './StyleRefSlot';
 import { Image as ImageIcon, Sparkles, Upload, Settings2, Trash2, MessageSquare, Ban, Lock, Palette, Type, ImagePlus, Save, Check, X, RotateCcw } from 'lucide-react';
@@ -10,13 +10,14 @@ interface ControlPanelProps {
   characters: Character[];
   styleReferences: StyleReference[];
   background: BackgroundState;
-  
+
   constantPrompt: string;
   positivePrompt: string;
   negativePrompt: string;
 
   quality: ImageQuality;
   aspectRatio: AspectRatio;
+  selectedModel: GeminiModel;
   isGenerating: boolean;
   onUpdateCharacter: (id: number, file: File) => void;
   onRemoveCharacter: (id: number) => void;
@@ -46,6 +47,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   negativePrompt,
   quality,
   aspectRatio,
+  selectedModel,
   isGenerating,
   onUpdateCharacter,
   onRemoveCharacter,
@@ -75,6 +77,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   // Drag states for containers
   const [isDraggingCharContainer, setIsDraggingCharContainer] = useState(false);
   const [isDraggingStyleContainer, setIsDraggingStyleContainer] = useState(false);
+  const [isDraggingSourceImage, setIsDraggingSourceImage] = useState(false);
+  const sourceImageInputRef = useRef<HTMLInputElement>(null);
 
   // Calculate detected ratio from custom resolution
   const detectedRatio = useMemo(() => {
@@ -177,11 +181,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     if (files.length === 0) return;
     
     if (type === 'character') {
-      files.forEach((file, index) => {
-        if (index < characters.length) {
-          onUpdateCharacter(characters[index].id, file);
-        }
-      });
+      // For source image, only take the first file
+      if (files.length > 0 && characters.length > 0) {
+        onUpdateCharacter(characters[0].id, files[0]);
+      }
     } else if (type === 'style') {
       files.forEach((file, index) => {
         if (index < styleReferences.length) {
@@ -269,7 +272,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   };
 
   const standardRatios: AspectRatio[] = ['16:9', '9:16', '1:1', '4:3', '3:4'];
-  const qualities: ImageQuality[] = ['1K', '2K', '4K'];
+  // Only Gemini 3 Pro supports native 2K/4K output
+  const isGemini3Pro = selectedModel === 'gemini-3-pro-image-preview';
+  const qualities: ImageQuality[] = isGemini3Pro ? ['1K', '2K', '4K'] : ['1K'];
 
   const currentResString = `${customWidth}x${customHeight}`;
   const isAlreadySaved = savedResolutions.includes(currentResString);
@@ -336,31 +341,91 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </button>
       </div>
 
-      {/* 1. Source Image (Formerly Reference Characters) - ONLY IN IMAGE TO IMAGE MODE */}
-      {generationMode === 'image-to-image' && (
+      {/* 1. Source Image - ONLY IN IMAGE TO IMAGE MODE */}
+      {generationMode === 'image-to-image' && characters.length > 0 && (
         <section className="animate-in fade-in slide-in-from-top-4 duration-300">
-          <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center justify-between">
-            <span>Source Image</span>
-            {isDraggingCharContainer && <span className="text-xs text-yellow-400 animate-pulse">Drop to fill all slots</span>}
+          <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">
+            Source Image
           </h3>
-          <div 
+
+          {/* Rectangle Drop Zone */}
+          <div
+            onClick={() => !characters[0].base64 && sourceImageInputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setIsDraggingSourceImage(true); }}
+            onDragLeave={(e) => { e.preventDefault(); setIsDraggingSourceImage(false); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDraggingSourceImage(false);
+              const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+              if (files.length > 0 && characters.length > 0) {
+                onUpdateCharacter(characters[0].id, files[0]);
+              }
+            }}
             className={`
-              grid grid-cols-2 gap-4 transition-all rounded-xl p-2 -m-2
-              ${isDraggingCharContainer ? 'bg-yellow-400/10 border-2 border-dashed border-yellow-400' : 'border-2 border-transparent'}
+              relative w-full aspect-[16/9] rounded-xl overflow-hidden cursor-pointer transition-all
+              ${isDraggingSourceImage
+                ? 'border-2 border-dashed border-yellow-400 bg-yellow-400/10'
+                : characters[0].base64
+                  ? 'border-2 border-slate-600 hover:border-slate-500'
+                  : 'border-2 border-dashed border-slate-600 hover:border-slate-500 bg-slate-800/50'
+              }
             `}
-            onDragOver={(e) => { e.preventDefault(); setIsDraggingCharContainer(true); }}
-            onDragLeave={(e) => { e.preventDefault(); setIsDraggingCharContainer(false); }}
-            onDrop={(e) => handleBatchDrop(e, 'character')}
           >
-            {characters.map((char, index) => (
-              <CharacterSlot
-                key={char.id}
-                index={index}
-                character={char}
-                onUpdate={onUpdateCharacter}
-                onRemove={onRemoveCharacter}
-              />
-            ))}
+            {characters[0].base64 ? (
+              <>
+                {/* Image Preview */}
+                <img
+                  src={characters[0].base64}
+                  alt="Source"
+                  className="w-full h-full object-cover"
+                />
+                {/* Overlay with actions */}
+                <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sourceImageInputRef.current?.click();
+                    }}
+                    className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors"
+                    title="Replace Image"
+                  >
+                    <Upload className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveCharacter(characters[0].id);
+                    }}
+                    className="p-2 bg-red-500/80 hover:bg-red-500 rounded-lg text-white transition-colors"
+                    title="Remove Image"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* Empty State */
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-2">
+                <Upload className={`w-8 h-8 ${isDraggingSourceImage ? 'text-yellow-400' : ''}`} />
+                <span className={`text-sm font-medium ${isDraggingSourceImage ? 'text-yellow-400' : ''}`}>
+                  {isDraggingSourceImage ? 'Drop image here' : 'Click or drag to upload'}
+                </span>
+              </div>
+            )}
+
+            {/* Hidden File Input */}
+            <input
+              ref={sourceImageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0] && characters.length > 0) {
+                  onUpdateCharacter(characters[0].id, e.target.files[0]);
+                }
+                e.target.value = '';
+              }}
+            />
           </div>
         </section>
       )}
@@ -502,7 +567,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 <label className="text-xs text-slate-400">Quality</label>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className={`grid gap-2 ${isGemini3Pro ? 'grid-cols-3' : 'grid-cols-1'}`}>
               {qualities.map(q => (
                 <button
                     key={q}
@@ -519,6 +584,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 </button>
               ))}
             </div>
+            {!isGemini3Pro && (
+              <p className="text-[10px] text-slate-500 mt-2">2K/4K available with Gemini 3 Pro</p>
+            )}
           </div>
 
           {/* Dimension Selection */}
@@ -806,85 +874,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       </section>
 
-      {/* 5. Reference Background - ONLY IN IMAGE TO IMAGE MODE */}
-      {generationMode === 'image-to-image' && (
-        <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Reference Background</h3>
-          <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-            <div 
-              onClick={() => bgInputRef.current?.click()}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`
-                relative w-full h-32 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors overflow-hidden
-                ${isDraggingBg ? 'border-yellow-400 bg-slate-700' : ''}
-                ${background.previewUrl ? 'border-yellow-400/50 bg-slate-900' : 'border-slate-600 hover:border-slate-400 hover:bg-slate-700/50'}
-                ${!isDraggingBg && !background.previewUrl ? '' : ''} 
-              `}
-            >
-               {background.previewUrl ? (
-                  <>
-                    <img src={background.previewUrl} alt="Background" className="w-full h-full object-cover opacity-60" />
-                    
-                    {/* Remove Button */}
-                    <div 
-                      className="absolute top-2 right-2 p-1 bg-black/40 backdrop-blur-sm rounded-full cursor-pointer hover:bg-red-500/80 transition-colors z-20 group"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveBackground();
-                      }}
-                      title="Remove Background"
-                    >
-                      <Trash2 className="w-4 h-4 text-white/70 group-hover:text-white" />
-                    </div>
-                  </>
-               ) : (
-                 <>
-                   <ImageIcon className={`w-8 h-8 text-slate-400 mb-2 ${isDraggingBg ? 'text-yellow-400 animate-bounce' : ''}`} />
-                   <span className={`text-xs ${isDraggingBg ? 'text-yellow-400' : 'text-slate-400'}`}>
-                      {isDraggingBg ? 'Drop Image Here' : 'Click or Drop to upload background'}
-                   </span>
-                 </>
-               )}
-               
-               {background.previewUrl && !isDraggingBg && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="bg-slate-900/80 rounded-full px-3 py-1 flex items-center gap-1">
-                       <Upload className="w-3 h-3 text-white" /> 
-                       <span className="text-xs text-white">Change</span>
-                    </div>
-                  </div>
-               )}
-            </div>
-            <input 
-              type="file" 
-              ref={bgInputRef} 
-              onChange={handleBgChange} 
-              accept="image/*" 
-              className="hidden" 
-            />
-            
-            <div className="mt-3 flex items-center justify-between">
-              <label className="text-sm text-slate-300 flex items-center gap-2 cursor-pointer select-none">
-                <input 
-                  type="checkbox" 
-                  checked={background.useBackground} 
-                  onChange={onToggleUseBackground}
-                  className="w-4 h-4 rounded border-slate-600 text-yellow-500 focus:ring-yellow-500/50 bg-slate-700"
-                  disabled={!background.previewUrl}
-                />
-                Use this background
-              </label>
-              <span className="text-xs text-slate-500">
-                {background.useBackground ? 'Preserve Environment' : 'Reference Only'}
-              </span>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* 6. Action Button */}
+      {/* 5. Action Button */}
       <div className="sticky bottom-0 pt-4 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent">
         <button
           onClick={onGenerate}

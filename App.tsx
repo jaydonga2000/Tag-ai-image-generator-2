@@ -333,6 +333,7 @@ const App: React.FC = () => {
               negativePrompt={negativePrompt}
               quality={quality}
               aspectRatio={aspectRatio}
+              selectedModel={selectedModel}
               isGenerating={isGenerating}
               onUpdateCharacter={handleUpdateCharacter}
               onRemoveCharacter={handleRemoveCharacter}
